@@ -1,0 +1,4 @@
+SELECT SUBSCRIPTION_ID
+FROM {{ ref('subscription_cleaned') }}
+WHERE STATUS = 'ACTIVE'
+  AND END_DATE < CURRENT_DATE()

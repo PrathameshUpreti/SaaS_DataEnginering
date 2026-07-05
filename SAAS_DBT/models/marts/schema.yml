@@ -1,0 +1,194 @@
+version: 2
+
+models:
+  - name: dim_date
+    description: "Date dimension with calendar attributes"
+    columns:
+      - name: DATE_KEY
+        tests:
+          - unique
+          - not_null
+      - name: DAY_NAME
+        tests:
+          - accepted_values:
+              values: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+      - name: IS_WEEKEND
+        tests:
+          - accepted_values:
+              values: [true, false]
+
+  - name: dim_payment_method
+    description: "Payment method dimension with grouping"
+    columns:
+      - name: PAYMENT_METHOD
+        tests:
+          - unique
+          - not_null
+      - name: PAYMENT_METHOD_GROUP
+        tests:
+          - not_null
+
+  - name: dim_plan
+    description: "Subscription plan dimension with tier ordering"
+    columns:
+    
+      - name: PLAN_NAME
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Basic', 'Premium', 'Enterprise']
+              
+      - name: PLAN_TIER
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['SILVER', 'GOLD', 'PLATINUM', 'DIAMOND']
+              
+      - name: BILLING_CYCLE
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['MONTHLY', 'YEARLY']
+              
+      - name: MONTHLY_PRICE
+        tests:
+          - is_non_negative
+          
+      - name: TIER_ORDER
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5]
+
+  - name: dim_users
+    description: "User dimension with current subscription context"
+    columns:
+      - name: USER_ID
+        tests:
+          - unique
+          - not_null
+          
+      - name: USER_STATUS
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['ACTIVE', 'INACTIVE', 'CHURNED', 'SUSPENDED']
+              
+      - name: CURRENT_PLAN_TIER
+        tests:
+          - accepted_values:
+              values: ['SILVER', 'GOLD', 'PLATINUM', 'DIAMOND']
+              
+      - name: SUBSCRIPTION_STATUS
+        tests:
+          - accepted_values:
+              values: ['ACTIVE', 'CANCELLED', 'EXPIRED']
+              
+      - name: IS_PAYING
+        tests:
+          - accepted_values:
+              values: [true, false]
+
+  - name: fact_payments
+    description: "Payment fact table with revenue calculation"
+    columns:
+      - name: PAYMENT_ID
+        tests:
+          - unique
+          - not_null
+      - name: USER_ID
+        description: "FK to dim_users"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_users')
+              field: USER_ID
+      - name: PAYMENT_STATUS
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['SUCCESS', 'FAILED', 'PENDING', 'REFUNDED']
+      - name: CURRENCY
+        tests:
+          - not_null
+          
+      - name: AMOUNT
+        tests:
+          - not_null
+          - is_non_negative
+          
+      - name: REVENUE_AMOUNT
+        tests:
+          - is_non_negative
+
+  - name: fact_subscription
+    description: "Subscription fact table with SCD tracking and MRR"
+    columns:
+      - name: SUBSCRIPTION_ID
+        tests:
+          - not_null
+          
+      - name: USER_ID
+        description: "FK to dim_users"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_users')
+              field: USER_ID
+      - name: SUBSCRIPTION_STATUS
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['ACTIVE', 'CANCELLED', 'EXPIRED', 'PAUSED']
+      - name: BILLING_CYCLE
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['MONTHLY', 'YEARLY']
+      - name: IS_CURRENT
+        tests:
+          - accepted_values:
+              values: [true, false]
+      - name: MONTHLY_PRICE
+        tests:
+          - is_non_negative
+      - name: MRR_CONTRIBUTION
+        tests:
+          - is_non_negative
+
+  - name: fact_support_ticket
+    description: "Support ticket fact table with SLA tracking"
+    columns:
+      - name: TICKET_ID
+        tests:
+          - unique
+          - not_null
+      - name: USER_ID
+        description: "FK to dim_users"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_users')
+              field: USER_ID
+      - name: PRIORITY
+        tests:
+          - not_null
+          
+      - name: TICKET_STATUS
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']
+              
+      - name: IS_RESOLVED
+        tests:
+          - accepted_values:
+              values: [true, false]
+              
+      - name: SLA_BREACHED
+        tests:
+          - accepted_values:
+              values: [true, false]
+      - name: SATISFACTION_SCORE
+        tests:
+          - is_non_negative

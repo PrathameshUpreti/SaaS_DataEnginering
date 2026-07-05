@@ -1,0 +1,3 @@
+SELECT USER_ID
+FROM {{ ref('user_cleaned') }}
+WHERE SIGNUP_DATE > CURRENT_TIMESTAMP()

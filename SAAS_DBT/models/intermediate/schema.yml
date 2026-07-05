@@ -1,0 +1,81 @@
+version: 2
+
+models:
+  - name: user_cleaned
+    description: "Cleaned user data view from staging source"
+    columns:
+      - name: USER_ID
+        tests:
+          - unique
+          - not_null
+
+  - name: subscription_cleaned
+    description: "Cleaned subscription data view from staging source"
+    columns:
+      - name: SUBSCRIPTION_ID
+        tests:
+          - unique
+          - not_null
+      - name: USER_ID
+        tests:
+          - not_null
+          - relationships:
+              to: ref('user_cleaned')
+              field: USER_ID
+
+  - name: payment_cleaned
+    description: "Cleaned payment data view from staging source"
+    columns:
+      - name: PAYMENT_ID
+        tests:
+          - unique
+          - not_null
+          
+      - name: USER_ID
+        tests:
+          - not_null
+          - relationships:
+              to: ref('user_cleaned')
+              field: USER_ID
+              
+      - name: SUBSCRIPTION_ID
+        tests:
+          - not_null
+          - relationships:
+              to: ref('subscription_cleaned')
+              field: SUBSCRIPTION_ID
+
+  - name: support_ticket_cleaned
+    description: "Cleaned support ticket data view from staging source"
+    columns:
+      - name: TICKET_ID
+        tests:
+          - unique
+          - not_null
+          
+      - name: USER_ID
+        tests:
+          - not_null
+          - relationships:
+              to: ref('user_cleaned')
+              field: USER_ID
+              
+
+  - name: user_payment
+    description: "Users joined with payments and subscription context"
+    columns:
+      - name: PAYMENT_ID
+        tests:
+          - unique
+          - not_null
+      - name: USER_ID
+        tests:
+          - not_null
+          
+
+  - name: user_subscription
+    description: "Users joined with their subscriptions"
+    columns:
+      - name: USER_ID
+        tests:
+          - not_null

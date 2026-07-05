@@ -1,0 +1,82 @@
+
+version: 2
+
+sources:
+  - name: raw
+    database: SAAS_PROD
+    schema: RAW
+    description: "Raw landing zone - source data coming from S3 (its an random project so loading data automatically in S3) via Snowpipe"
+    loaded_at_field: LOADED_AT
+    freshness:
+      warn_after: {count: 12, period: hour}
+      error_after: {count: 24, period: hour}
+    tables:
+      - name: RAW_USERS
+        description: "User  data ingested from S3 via Snowpipe"
+        columns:
+          - name: USER_ID
+            tests:
+              - not_null
+      - name: RAW_SUBSCRIPTIONS
+        description: "Subscription lifecycle data from billing system"
+        columns:
+          - name: SUBSCRIPTION_ID
+            tests:
+              - not_null
+      - name: RAW_PAYMENTS
+        description: "Payment transactions from Stripe webhook exports"
+        columns:
+          - name: PAYMENT_ID
+            tests:
+              - not_null
+      - name: RAW_SUPPORT_TICKETS
+        description: "Support ticket data from helpdesk system"
+        columns:
+          - name: TICKET_ID
+            tests:
+              - not_null
+
+  - name: staging
+    database: SAAS_PROD
+    schema: STAGING
+    
+    description: "staging tables populated by streams and tasks (MERGE from RAW)"
+    
+    loaded_at_field: UPDATED_AT
+    
+    freshness:
+      warn_after: {count: 1, period: hour}
+      error_after: {count: 6, period: hour}
+    tables:
+    
+      - name: STG_USERS
+        description: "user data - populated via TASK_MERGE_USERS"
+        columns:
+          - name: USER_ID
+            tests:
+              - unique
+              - not_null
+              
+      - name: STG_SUBSCRIPTIONS
+        description: " subscription data - populated via TASK_MERGE_SUBSCRIPTIONS"
+        columns:
+          - name: SUBSCRIPTION_ID
+            tests:
+              - unique
+              - not_null
+              
+      - name: STG_PAYMENTS
+        description: "payment data - populated via TASK_MERGE_PAYMENTS"
+        columns:
+          - name: PAYMENT_ID
+            tests:
+              - unique
+              - not_null
+              
+      - name: STG_SUPPORT_TICKETS
+        description: "support ticket data - populated via TASK_MERGE_SUPPORT_TICKETS"
+        columns:
+          - name: TICKET_ID
+            tests:
+              - unique
+              - not_null

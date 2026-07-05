@@ -1,0 +1,10 @@
+SAAS_DBT:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      role: TRANSFORMER_ROLE
+      warehouse: TRANSFORMING_WH
+      database: SAAS_PROD
+      schema: STAGING
+      threads: 8

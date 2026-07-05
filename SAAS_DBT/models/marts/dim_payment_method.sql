@@ -1,0 +1,19 @@
+{{ config(materialized='table') }}
+
+WITH payment_methods AS (
+SELECT DISTINCT PAYMENT_METHOD
+    
+FROM {{ ref('payment_cleaned') }}
+)
+
+SELECT PAYMENT_METHOD,
+CASE
+    WHEN PAYMENT_METHOD IN ('PAYPAL', 'VENMO', 'APPLE PAY', 'GOOGLE PAY') THEN 'DIGITAL_WALLET'
+    
+    WHEN PAYMENT_METHOD IN ('DEBIT CARD', 'CREDIT CARD') THEN 'CARD'
+    
+    WHEN PAYMENT_METHOD IN ('UPI', 'BANK TRANSFER', 'ACH') THEN 'BANK'
+    
+    ELSE 'OTHER'
+END AS PAYMENT_METHOD_GROUP
+FROM payment_methods
