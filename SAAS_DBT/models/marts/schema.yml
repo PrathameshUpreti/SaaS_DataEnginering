@@ -36,13 +36,13 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['Basic', 'Premium']
+              values: ['Basic', 'Premium', 'Standard']
               
       - name: PLAN_TIER
         tests:
           - not_null
           - accepted_values:
-              values: ['SILVER', 'GOLD', 'PLATINUM']
+              values: ['SILVER', 'GOLD', 'PLATINUM', 'BRONZE']
               
       - name: BILLING_CYCLE
         tests:
@@ -77,12 +77,12 @@ models:
       - name: CURRENT_PLAN_TIER
         tests:
           - accepted_values:
-              values: ['SILVER', 'GOLD', 'PLATINUM']
+              values: ['SILVER', 'GOLD', 'PLATINUM', 'BRONZE', 'FREE']
               
       - name: SUBSCRIPTION_STATUS
         tests:
           - accepted_values:
-              values: ['ACTIVE', 'CANCELLED', 'EXPIRED']
+              values: ['ACTIVE', 'CANCELLED', 'EXPIRED','NOT_SUBSCRIBED']
               
       - name: IS_PAYING
         tests:
