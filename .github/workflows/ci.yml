@@ -39,6 +39,9 @@ jobs:
           mkdir -p "${{ env.DBT_PROFILES_DIR }}"
           python -c 'from pathlib import Path; Path("${{ env.DBT_PROFILES_DIR }}/profiles.yml").write_text("SAAS_DBT:\n  target: ci\n  outputs:\n    ci:\n      type: snowflake\n      account: ${{ secrets.SNOWFLAKE_ACCOUNT }}\n      user: ${{ secrets.SNOWFLAKE_USER }}\n      password: ${{ secrets.SNOWFLAKE_PASSWORD }}\n      role: ${{ secrets.SNOWFLAKE_ROLE }}\n      warehouse: ${{ secrets.SNOWFLAKE_WAREHOUSE }}\n      database: ${{ secrets.SNOWFLAKE_DATABASE }}\n      schema: CI_${{ github.event.pull_request.number }}\n      threads: 4\n")'
 
+      - name: dbt debug
+        run: dbt debug --project-dir ${{ env.DBT_PROJECT_DIR }} --profiles-dir ${{ env.DBT_PROFILES_DIR }}
+
       - name: dbt deps
         run: dbt deps --project-dir ${{ env.DBT_PROJECT_DIR }} --profiles-dir ${{ env.DBT_PROFILES_DIR }}
 
@@ -77,6 +80,9 @@ jobs:
         run: |
           mkdir -p "${{ env.DBT_PROFILES_DIR }}"
           python -c 'from pathlib import Path; Path("${{ env.DBT_PROFILES_DIR }}/profiles.yml").write_text("SAAS_DBT:\n  target: prod\n  outputs:\n    prod:\n      type: snowflake\n      account: ${{ secrets.SNOWFLAKE_ACCOUNT }}\n      user: ${{ secrets.SNOWFLAKE_USER }}\n      password: ${{ secrets.SNOWFLAKE_PASSWORD }}\n      role: ${{ secrets.SNOWFLAKE_ROLE }}\n      warehouse: ${{ secrets.SNOWFLAKE_WAREHOUSE }}\n      database: ${{ secrets.SNOWFLAKE_DATABASE }}\n      schema: STAGING\n      threads: 8\n")'
+
+      - name: dbt debug
+        run: dbt debug --project-dir ${{ env.DBT_PROJECT_DIR }} --profiles-dir ${{ env.DBT_PROFILES_DIR }}
 
       - name: dbt deps
         run: dbt deps --project-dir ${{ env.DBT_PROJECT_DIR }} --profiles-dir ${{ env.DBT_PROFILES_DIR }}
