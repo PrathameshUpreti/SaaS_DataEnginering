@@ -1,0 +1,122 @@
+# CI/CD pipeline for dbt + Snowflake
+
+
+name: dbt CI/CD Pipeline
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+env:
+  DBT_PROJECT_DIR: ./SAAS_DBT
+  DBT_PROFILES_DIR: ./SAAS_DBT
+
+jobs:
+  # ─── CI: Runs on pull requests ───────────────────────────────────
+  dbt-ci:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+        # set up python env
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+        # install all the dependecies
+
+      - name: Install dependencies
+        run: pip install dbt-snowflake
+
+      - name: Create profiles.yml for CI
+        run: |
+          mkdir -p ${{ env.DBT_PROFILES_DIR }}
+          cat <<EOF > ${{ env.DBT_PROFILES_DIR }}/profiles.yml
+SAAS_DBT:
+  target: ci
+  outputs:
+    ci:
+      type: snowflake
+      account: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      user: ${{ secrets.SNOWFLAKE_USER }}
+      password: ${{ secrets.SNOWFLAKE_PASSWORD }}
+      role: ${{ secrets.SNOWFLAKE_ROLE }}
+      warehouse: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+      database: ${{ secrets.SNOWFLAKE_DATABASE }}
+      schema: CI_${{ github.event.pull_request.number }}
+      threads: 4
+EOF
+
+      - name: dbt deps
+        run: dbt deps --project-dir ${{ env.DBT_PROJECT_DIR }} --profiles-dir ${{ env.DBT_PROFILES_DIR }}
+
+      - name: dbt compile (validate SQL)
+        run: dbt compile --project-dir ${{ env.DBT_PROJECT_DIR }} --profiles-dir ${{ env.DBT_PROFILES_DIR }}
+
+      - name: dbt build (run + test in CI schema)
+        run: dbt build --project-dir ${{ env.DBT_PROJECT_DIR }} --profiles-dir ${{ env.DBT_PROFILES_DIR }}
+
+      - name: Cleanup CI schema
+        if: always()
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+        run: |
+          dbt run-operation drop_ci_schema --args '{"schema_name": "CI_${{ github.event.pull_request.number }}"}' --project-dir ${{ env.DBT_PROJECT_DIR }} --profiles-dir ${{ env.DBT_PROFILES_DIR }} || true
+
+  # ─── CD: Runs on merge to main ──────────────────────────────────
+  dbt-cd:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install dbt-snowflake
+
+      - name: Create profiles.yml for production
+        run: |
+          mkdir -p ${{ env.DBT_PROFILES_DIR }}
+          cat <<EOF > ${{ env.DBT_PROFILES_DIR }}/profiles.yml
+SAAS_DBT:
+  target: prod
+  outputs:
+    prod:
+      type: snowflake
+      account: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      user: ${{ secrets.SNOWFLAKE_USER }}
+      password: ${{ secrets.SNOWFLAKE_PASSWORD }}
+      role: ${{ secrets.SNOWFLAKE_ROLE }}
+      warehouse: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+      database: ${{ secrets.SNOWFLAKE_DATABASE }}
+      schema: STAGING
+      threads: 8
+EOF
+
+      - name: dbt deps
+        run: dbt deps --project-dir ${{ env.DBT_PROJECT_DIR }} --profiles-dir ${{ env.DBT_PROFILES_DIR }}
+
+      - name: dbt build (deploy to production)
+        run: dbt build --project-dir ${{ env.DBT_PROJECT_DIR }} --profiles-dir ${{ env.DBT_PROFILES_DIR }}
+
+      - name: Generate dbt docs
+        run: dbt docs generate --project-dir ${{ env.DBT_PROJECT_DIR }} --profiles-dir ${{ env.DBT_PROFILES_DIR }}
+
+      - name: Upload docs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-docs
+          path: ${{ env.DBT_PROJECT_DIR }}/target/
