@@ -44,6 +44,9 @@ jobs:
 
       - name: dbt deps
         run: dbt deps --project-dir ${{ env.DBT_PROJECT_DIR }} --profiles-dir ${{ env.DBT_PROFILES_DIR }}
+      
+      - name: dbt build
+        run: dbt build --full-refresh --target ci --project-dir ${{ env.DBT_PROJECT_DIR }} --profiles-dir ${{ env.DBT_PROFILES_DIR }}
 
       - name: dbt compile (validate SQL)
         run: dbt compile --project-dir ${{ env.DBT_PROJECT_DIR }} --profiles-dir ${{ env.DBT_PROFILES_DIR }}
